@@ -1,0 +1,632 @@
+name: Security Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      setup_type:
+        description: 'Security setup type'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - branch-protection
+        - security-scanning
+        - code-review
+
+permissions:
+  contents: write
+  security-events: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  security-setup:
+    runs-on: ubuntu-latest
+    name: 🔒 Configure Repository Security
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Configure Branch Protection Rules
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'branch-protection' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            console.log('🔒 Setting up branch protection for main branch...');
+            
+            try {
+              await github.rest.repos.updateBranchProtection({
+                owner,
+                repo,
+                branch: 'main',
+                required_status_checks: {
+                  strict: true,
+                  contexts: [
+                    'Security & Dependencies',
+                    'Code Quality & Testing',
+                    'Build & Test',
+                    'Security Scanning'
+                  ]
+                },
+                enforce_admins: false,
+                required_pull_request_reviews: {
+                  required_approving_review_count: 1,
+                  dismiss_stale_reviews: true,
+                  require_code_owner_reviews: true,
+                  require_last_push_approval: true,
+                  bypass_pull_request_allowances: {
+                    users: [],
+                    teams: [],
+                    apps: ['dependabot[bot]', 'mergify[bot]']
+                  }
+                },
+                restrictions: null,
+                allow_force_pushes: false,
+                allow_deletions: false,
+                block_creations: false,
+                required_conversation_resolution: true,
+                lock_branch: false,
+                allow_fork_syncing: true
+              });
+              console.log('✅ Branch protection rules configured successfully');
+            } catch (error) {
+              console.log('⚠️ Branch protection setup failed (may need admin permissions):', error.message);
+              console.log('Please configure manually in Settings → Branches');
+            }
+      
+      - name: Enable Security Features
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'security-scanning' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            console.log('🔒 Enabling security features...');
+            
+            try {
+              // Enable vulnerability alerts
+              await github.rest.repos.enableVulnerabilityAlerts({
+                owner,
+                repo
+              });
+              console.log('✅ Vulnerability alerts enabled');
+            } catch (error) {
+              console.log('⚠️ Could not enable vulnerability alerts:', error.message);
+            }
+            
+            try {
+              // Enable automated security fixes
+              await github.rest.repos.enableAutomatedSecurityFixes({
+                owner,
+                repo
+              });
+              console.log('✅ Automated security fixes enabled');
+            } catch (error) {
+              console.log('⚠️ Could not enable automated security fixes:', error.message);
+            }
+      
+      - name: Create CODEOWNERS File
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'code-review' }}
+        run: |
+          mkdir -p .github
+          cat > .github/CODEOWNERS << 'EOF'
+          # Global code owners
+          * @Owen-Richards
+          
+          # Security-sensitive files require additional review
+          .github/workflows/* @Owen-Richards
+          docker/* @Owen-Richards
+          infrastructure/* @Owen-Richards
+          
+          # Data and ML pipeline owners
+          src/data/* @Owen-Richards
+          src/models/* @Owen-Richards
+          notebooks/* @Owen-Richards
+          
+          # Configuration files
+          requirements.txt @Owen-Richards
+          requirements.in @Owen-Richards
+          .env.example @Owen-Richards
+          
+          # Security and CI/CD
+          .github/dependabot.yml @Owen-Richards
+          .mergify.yml @Owen-Richards
+          Dockerfile @Owen-Richards
+          
+          # Documentation
+          *.md @Owen-Richards
+          docs/* @Owen-Richards
+          EOF
+          
+          echo "✅ CODEOWNERS file created"
+      
+      - name: Create Security Policy
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'security-scanning' }}
+        run: |
+          mkdir -p .github
+          cat > .github/SECURITY.md << 'EOF'
+          # Security Policy
+          
+          ## Supported Versions
+          
+          | Version | Supported          |
+          | ------- | ------------------ |
+          | 1.x.x   | :white_check_mark: |
+          | < 1.0   | :x:                |
+          
+          ## Reporting a Vulnerability
+          
+          We take the security of MLOps SDG14 seriously. If you discover a security vulnerability, please follow these steps:
+          
+          ### For Critical Vulnerabilities
+          
+          1. **DO NOT** create a public GitHub issue
+          2. Email the security team directly at: [Your Security Email]
+          3. Include the following information:
+             - Description of the vulnerability
+             - Steps to reproduce
+             - Potential impact
+             - Suggested fix (if any)
+          
+          ### For Non-Critical Issues
+          
+          1. Create a GitHub issue with the label `security`
+          2. Provide detailed information about the issue
+          3. We will respond within 48 hours
+          
+          ## Security Measures
+          
+          This project implements the following security measures:
+          
+          - **Dependency Scanning**: Automated vulnerability scanning with Dependabot
+          - **Code Scanning**: Static analysis with CodeQL and Trivy
+          - **Container Scanning**: Docker image vulnerability scanning
+          - **Secrets Detection**: Prevention of secret commits
+          - **Branch Protection**: Required reviews and status checks
+          - **Access Control**: Principle of least privilege
+          
+          ## Security Best Practices
+          
+          When contributing to this project:
+          
+          - Never commit secrets, API keys, or passwords
+          - Use environment variables for sensitive configuration
+          - Follow secure coding practices
+          - Keep dependencies up to date
+          - Use official Docker base images
+          - Validate all inputs
+          - Log security-relevant events
+          
+          ## Incident Response
+          
+          In case of a security incident:
+          
+          1. Immediate containment
+          2. Impact assessment
+          3. Vulnerability patching
+          4. Communication to stakeholders
+          5. Post-incident review
+          
+          Thank you for helping keep MLOps SDG14 secure!
+          EOF
+          
+          echo "✅ Security policy created"
+      
+      - name: Create Pull Request Template
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'code-review' }}
+        run: |
+          mkdir -p .github/pull_request_template
+          cat > .github/pull_request_template/default.md << 'EOF'
+          ## 📋 Pull Request Checklist
+          
+          ### Type of Change
+          - [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
+          - [ ] ✨ New feature (non-breaking change which adds functionality)
+          - [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+          - [ ] 📝 Documentation update
+          - [ ] 🔧 Configuration change
+          - [ ] 🧪 Test improvement
+          - [ ] ♻️ Code refactor
+          
+          ### Description
+          Brief description of the changes and motivation:
+          
+          ### Related Issues
+          Fixes #(issue number)
+          
+          ### Changes Made
+          - [ ] Change 1
+          - [ ] Change 2
+          - [ ] Change 3
+          
+          ### Testing
+          - [ ] Unit tests pass locally
+          - [ ] Integration tests pass
+          - [ ] Manual testing completed
+          - [ ] New tests added for new functionality
+          
+          ### Security Considerations
+          - [ ] No sensitive data exposed
+          - [ ] Input validation implemented
+          - [ ] Authentication/authorization considered
+          - [ ] Dependencies security checked
+          
+          ### Documentation
+          - [ ] Code is self-documenting
+          - [ ] README updated (if needed)
+          - [ ] API documentation updated (if needed)
+          - [ ] Comments added for complex logic
+          
+          ### Performance
+          - [ ] No performance degradation
+          - [ ] Memory usage considered
+          - [ ] Database queries optimized (if applicable)
+          
+          ### Deployment
+          - [ ] Database migrations included (if needed)
+          - [ ] Environment variables documented (if new)
+          - [ ] Backwards compatible
+          - [ ] Ready for production deployment
+          
+          ### Review
+          - [ ] Self-review completed
+          - [ ] Code follows project style guidelines
+          - [ ] Removes unused code/comments
+          - [ ] Variable names are descriptive
+          
+          ### Additional Notes
+          Any additional information, screenshots, or context:
+          EOF
+          
+          echo "✅ Pull request template created"
+      
+      - name: Create Issue Templates
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'code-review' }}
+        run: |
+          mkdir -p .github/ISSUE_TEMPLATE
+          
+          # Bug report template
+          cat > .github/ISSUE_TEMPLATE/01-bug-report.yml << 'EOF'
+          name: 🐛 Bug Report
+          description: Report a bug or unexpected behavior
+          title: "[Bug]: "
+          labels: ["bug", "triage"]
+          body:
+            - type: markdown
+              attributes:
+                value: |
+                  Thank you for taking the time to report a bug! Please fill out the information below to help us investigate.
+          
+            - type: textarea
+              id: description
+              attributes:
+                label: Bug Description
+                description: A clear and concise description of what the bug is.
+                placeholder: Describe the bug...
+              validations:
+                required: true
+          
+            - type: textarea
+              id: reproduction
+              attributes:
+                label: Steps to Reproduce
+                description: Steps to reproduce the behavior
+                placeholder: |
+                  1. Go to '...'
+                  2. Click on '....'
+                  3. Scroll down to '....'
+                  4. See error
+              validations:
+                required: true
+          
+            - type: textarea
+              id: expected
+              attributes:
+                label: Expected Behavior
+                description: What you expected to happen
+              validations:
+                required: true
+          
+            - type: textarea
+              id: environment
+              attributes:
+                label: Environment
+                description: Please provide your environment details
+                placeholder: |
+                  - OS: [e.g. Ubuntu 20.04, macOS 12.0, Windows 11]
+                  - Python version: [e.g. 3.9.7]
+                  - Docker version: [e.g. 20.10.12]
+                  - Browser: [e.g. Chrome 96, Firefox 95]
+              validations:
+                required: true
+          
+            - type: textarea
+              id: logs
+              attributes:
+                label: Logs and Error Messages
+                description: Please paste any relevant logs or error messages
+                render: shell
+          
+            - type: checkboxes
+              id: checklist
+              attributes:
+                label: Checklist
+                options:
+                  - label: I have searched for existing issues
+                    required: true
+                  - label: I have provided all relevant information
+                    required: true
+          EOF
+          
+          # Feature request template
+          cat > .github/ISSUE_TEMPLATE/02-feature-request.yml << 'EOF'
+          name: ✨ Feature Request
+          description: Suggest a new feature or enhancement
+          title: "[Feature]: "
+          labels: ["enhancement", "triage"]
+          body:
+            - type: markdown
+              attributes:
+                value: |
+                  Thanks for suggesting a new feature! Please provide detailed information below.
+          
+            - type: textarea
+              id: problem
+              attributes:
+                label: Problem Statement
+                description: What problem does this feature solve?
+                placeholder: I'm frustrated when...
+              validations:
+                required: true
+          
+            - type: textarea
+              id: solution
+              attributes:
+                label: Proposed Solution
+                description: Describe the feature you'd like to see
+              validations:
+                required: true
+          
+            - type: textarea
+              id: alternatives
+              attributes:
+                label: Alternative Solutions
+                description: Any alternative solutions or features you've considered?
+          
+            - type: dropdown
+              id: priority
+              attributes:
+                label: Priority
+                description: How important is this feature?
+                options:
+                  - Low
+                  - Medium
+                  - High
+                  - Critical
+              validations:
+                required: true
+          
+            - type: checkboxes
+              id: contribution
+              attributes:
+                label: Contribution
+                options:
+                  - label: I would be willing to contribute this feature
+          EOF
+          
+          # Security issue template
+          cat > .github/ISSUE_TEMPLATE/03-security.yml << 'EOF'
+          name: 🔒 Security Issue
+          description: Report a security vulnerability (for non-critical issues only)
+          title: "[Security]: "
+          labels: ["security", "triage"]
+          body:
+            - type: markdown
+              attributes:
+                value: |
+                  ⚠️ **IMPORTANT**: For critical security vulnerabilities, please email us directly instead of creating a public issue.
+          
+            - type: textarea
+              id: description
+              attributes:
+                label: Security Issue Description
+                description: Describe the security concern (non-critical only)
+              validations:
+                required: true
+          
+            - type: dropdown
+              id: severity
+              attributes:
+                label: Severity Level
+                options:
+                  - Low
+                  - Medium
+                  - High (Consider private disclosure)
+              validations:
+                required: true
+          
+            - type: checkboxes
+              id: checklist
+              attributes:
+                label: Security Checklist
+                options:
+                  - label: This is NOT a critical vulnerability
+                    required: true
+                  - label: I have not shared this information publicly elsewhere
+                    required: true
+          EOF
+          
+          echo "✅ Issue templates created"
+      
+      - name: Setup Repository Labels
+        if: ${{ inputs.setup_type == 'all' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            const labels = [
+              // Priority labels
+              { name: 'priority/critical', color: 'B60205', description: 'Critical priority issue' },
+              { name: 'priority/high', color: 'D93F0B', description: 'High priority issue' },
+              { name: 'priority/medium', color: 'FBCA04', description: 'Medium priority issue' },
+              { name: 'priority/low', color: '0E8A16', description: 'Low priority issue' },
+              
+              // Type labels
+              { name: 'type/bug', color: 'D73A4A', description: 'Something is not working' },
+              { name: 'type/feature', color: '0075CA', description: 'New feature request' },
+              { name: 'type/enhancement', color: 'A2EEEF', description: 'Enhancement to existing feature' },
+              { name: 'type/documentation', color: '0075CA', description: 'Documentation improvements' },
+              { name: 'type/refactor', color: 'FEF2C0', description: 'Code refactoring' },
+              
+              // Security labels
+              { name: 'security/vulnerability', color: 'B60205', description: 'Security vulnerability' },
+              { name: 'security/audit', color: 'D93F0B', description: 'Security audit required' },
+              { name: 'security/compliance', color: 'FBCA04', description: 'Compliance related' },
+              
+              // Review labels
+              { name: 'review/needs-review', color: 'FFEB3B', description: 'Needs code review' },
+              { name: 'review/approved', color: '4CAF50', description: 'Review approved' },
+              { name: 'review/changes-requested', color: 'FF9800', description: 'Changes requested' },
+              
+              // Status labels
+              { name: 'status/in-progress', color: 'FFA500', description: 'Work in progress' },
+              { name: 'status/blocked', color: 'B60205', description: 'Blocked by dependency' },
+              { name: 'status/ready', color: '0E8A16', description: 'Ready for implementation' },
+              
+              // Area labels
+              { name: 'area/data-pipeline', color: '8E44AD', description: 'Data pipeline related' },
+              { name: 'area/ml-models', color: '3498DB', description: 'Machine learning models' },
+              { name: 'area/infrastructure', color: '34495E', description: 'Infrastructure and DevOps' },
+              { name: 'area/api', color: '27AE60', description: 'API related changes' },
+              { name: 'area/frontend', color: 'E74C3C', description: 'Frontend/UI changes' },
+              
+              // Bot labels (already exist but ensure they're there)
+              { name: 'bot-created', color: '00D4AA', description: 'Created by automation bot' },
+              { name: 'auto-merge', color: '00FF00', description: 'Safe for automatic merging' },
+              { name: 'dependencies', color: '0366D6', description: 'Dependency updates' }
+            ];
+            
+            console.log('🏷️ Creating repository labels...');
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+                console.log(`✅ Created label: ${label.name}`);
+              } catch (error) {
+                if (error.status === 422) {
+                  console.log(`ℹ️ Label already exists: ${label.name}`);
+                } else {
+                  console.log(`❌ Failed to create label ${label.name}:`, error.message);
+                }
+              }
+            }
+      
+      - name: Commit Security Configuration Files
+        run: |
+          git config --global user.name "security-bot[bot]"
+          git config --global user.email "security-bot[bot]@users.noreply.github.com"
+          
+          git add .github/CODEOWNERS .github/SECURITY.md .github/pull_request_template/ .github/ISSUE_TEMPLATE/
+          
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "feat: add comprehensive security configuration
+
+            - Add CODEOWNERS file for code review requirements
+            - Create security policy and vulnerability reporting process
+            - Add PR template with security and quality checklist
+            - Create issue templates for bugs, features, and security
+            - Configure proper labels and review processes"
+          fi
+      
+      - name: Create Pull Request for Security Config
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'feat: enhance repository security and code review practices'
+          title: '🔒 [Security] Repository Security & Code Review Configuration'
+          body: |
+            ## 🔒 Security & Code Review Enhancement
+            
+            This PR adds comprehensive security and code review configurations to the repository.
+            
+            ### 🛡️ Security Features Added:
+            - **CODEOWNERS**: Mandatory code review for sensitive files
+            - **Security Policy**: Vulnerability reporting and security measures
+            - **Branch Protection**: Required reviews and status checks
+            - **Security Scanning**: Automated vulnerability detection
+            - **Issue Templates**: Structured bug reports and feature requests
+            - **PR Template**: Security and quality checklist
+            
+            ### 🏷️ Repository Labels:
+            - Priority levels (critical, high, medium, low)
+            - Type classifications (bug, feature, security, etc.)
+            - Area classifications (data-pipeline, ml-models, infrastructure)
+            - Review status tracking
+            
+            ### 📋 Code Review Process:
+            - Mandatory approvals for all PRs to main
+            - Code owner reviews for security-sensitive files
+            - Conversation resolution required
+            - Status check requirements
+            
+            ### 🎯 Best Practices Enforced:
+            - No force pushes to main branch
+            - Automated security fixes enabled
+            - Dependency vulnerability scanning
+            - Stale review dismissal
+            
+            This configuration ensures enterprise-grade security and development practices.
+          branch: security/repository-configuration
+          delete-branch: true
+          labels: |
+            security/audit
+            type/enhancement
+            area/infrastructure
+            priority/high
+          assignees: Owen-Richards
+          reviewers: Owen-Richards
+      
+      - name: Setup Summary
+        run: |
+          echo "## 🎉 Security Configuration Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Configured Features:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Branch protection rules" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛡️ Security scanning and alerts" >> $GITHUB_STEP_SUMMARY
+          echo "- 👥 Code owners and mandatory reviews" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 Issue and PR templates" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏷️ Comprehensive labeling system" >> $GITHUB_STEP_SUMMARY
+          echo "- 📚 Security policy and guidelines" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review and merge the security configuration PR" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the branch protection rules" >> $GITHUB_STEP_SUMMARY
+          echo "3. Enable additional security integrations (SonarCloud, etc.)" >> $GITHUB_STEP_SUMMARY
+          echo "4. Train team members on new security processes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Security Resources:" >> $GITHUB_STEP_SUMMARY
+          echo "- [Security Policy](.github/SECURITY.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Code Owners](.github/CODEOWNERS)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Repository Settings](../../settings)" >> $GITHUB_STEP_SUMMARY
