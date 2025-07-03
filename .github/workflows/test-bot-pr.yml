@@ -1,0 +1,68 @@
+name: Test Bot PR Creation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test-bot-pr:
+    runs-on: ubuntu-latest
+    name: 🧪 Test Bot PR Creation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "mlops-bot[bot]"
+          git config --global user.email "mlops-bot[bot]@users.noreply.github.com"
+      
+      - name: Create test change
+        run: |
+          echo "# Test Bot PR" > test-bot-file.md
+          echo "" >> test-bot-file.md
+          echo "This file was created by the bot to test PR creation." >> test-bot-file.md
+          echo "Created at: $(date)" >> test-bot-file.md
+          echo "" >> test-bot-file.md
+          echo "If you see this PR, the bot configuration is working correctly!" >> test-bot-file.md
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'test: bot PR creation verification'
+          title: '🧪 [Bot Test] Verify PR Creation Works'
+          body: |
+            ## 🧪 Bot PR Test
+            
+            This is a test PR to verify that bot branches can create PRs successfully.
+            
+            ### What this tests:
+            - ✅ Bot can checkout code
+            - ✅ Bot can make changes
+            - ✅ Bot can create commits
+            - ✅ Bot can push branches
+            - ✅ Bot can create PRs
+            
+            ### Next Steps:
+            If this PR was created successfully, you can:
+            1. Merge this PR to confirm the workflow
+            2. Delete the test file
+            3. Enable the production AI bot workflows
+            
+            **Note:** This PR can be safely merged or closed.
+          branch: bot/test-pr-creation
+          delete-branch: true
+          labels: |
+            test
+            bot-created
+            safe-to-merge
+          assignees: Owen-Richards
+          reviewers: Owen-Richards

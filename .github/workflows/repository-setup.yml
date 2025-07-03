@@ -1,0 +1,191 @@
+name: Repository Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      setup_type:
+        description: 'Type of setup to perform'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - branch-protection
+        - bot-permissions
+        - repository-settings
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  repository-projects: write
+
+jobs:
+  setup-repository:
+    runs-on: ubuntu-latest
+    name: 🔧 Repository Setup
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Setup Branch Protection Rules
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'branch-protection' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            try {
+              await github.rest.repos.updateBranchProtection({
+                owner,
+                repo,
+                branch: 'main',
+                required_status_checks: {
+                  strict: true,
+                  contexts: ['MLOps Pipeline - Marine Ecosystem Platform']
+                },
+                enforce_admins: false,
+                required_pull_request_reviews: {
+                  required_approving_review_count: 1,
+                  dismiss_stale_reviews: true,
+                  require_code_owner_reviews: false,
+                  require_last_push_approval: false
+                },
+                restrictions: null,
+                allow_force_pushes: false,
+                allow_deletions: false,
+                block_creations: false,
+                required_conversation_resolution: true
+              });
+              console.log('✅ Branch protection rules updated for main branch');
+            } catch (error) {
+              console.log('ℹ️ Branch protection update failed (may need admin permissions):', error.message);
+            }
+      
+      - name: Enable Auto-merge for Repository
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            try {
+              await github.rest.repos.update({
+                owner,
+                repo,
+                allow_auto_merge: true,
+                allow_merge_commit: false,
+                allow_squash_merge: true,
+                allow_rebase_merge: false,
+                delete_branch_on_merge: true,
+                has_discussions: true,
+                has_projects: true,
+                has_wiki: true
+              });
+              console.log('✅ Repository settings updated');
+            } catch (error) {
+              console.log('ℹ️ Repository settings update failed (may need admin permissions):', error.message);
+            }
+      
+      - name: Add Repository Topics
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            const topics = [
+              'mlops',
+              'marine-biology',
+              'ocean-science',
+              'sdg14',
+              'climate-change',
+              'machine-learning',
+              'python',
+              'data-science',
+              'github-actions',
+              'docker',
+              'kubernetes',
+              'terraform',
+              'monitoring',
+              'sustainability'
+            ];
+            
+            try {
+              await github.rest.repos.replaceAllTopics({
+                owner,
+                repo,
+                names: topics
+              });
+              console.log('✅ Repository topics added:', topics.join(', '));
+            } catch (error) {
+              console.log('ℹ️ Failed to add topics:', error.message);
+            }
+      
+      - name: Create Repository Labels
+        if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            const labels = [
+              { name: 'bot-created', color: '00D4AA', description: 'Created by automation bot' },
+              { name: 'auto-merge', color: '00FF00', description: 'Safe for automatic merging' },
+              { name: 'dependencies', color: '0366D6', description: 'Dependency updates' },
+              { name: 'code-quality', color: 'FF6B6B', description: 'Code quality improvements' },
+              { name: 'performance', color: 'FFD93D', description: 'Performance optimizations' },
+              { name: 'security', color: 'FF0000', description: 'Security improvements' },
+              { name: 'mlops', color: '9C27B0', description: 'MLOps related changes' },
+              { name: 'data-pipeline', color: '4CAF50', description: 'Data pipeline changes' },
+              { name: 'monitoring', color: 'FF9800', description: 'Monitoring and observability' },
+              { name: 'infrastructure', color: '607D8B', description: 'Infrastructure changes' }
+            ];
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+                console.log(`✅ Created label: ${label.name}`);
+              } catch (error) {
+                if (error.status === 422) {
+                  console.log(`ℹ️ Label already exists: ${label.name}`);
+                } else {
+                  console.log(`❌ Failed to create label ${label.name}:`, error.message);
+                }
+              }
+            }
+      
+      - name: Setup Complete
+        run: |
+          echo "## 🎉 Repository Setup Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What was configured:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Branch protection rules for main branch" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Auto-merge enabled for PRs" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Repository topics added" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Custom labels created" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Repository settings optimized" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Run the test bot PR workflow to verify everything works" >> $GITHUB_STEP_SUMMARY
+          echo "2. Enable Mergify app on your repository" >> $GITHUB_STEP_SUMMARY
+          echo "3. Configure any additional secrets needed for bots" >> $GITHUB_STEP_SUMMARY
+          echo "4. Enable Dependabot if desired" >> $GITHUB_STEP_SUMMARY

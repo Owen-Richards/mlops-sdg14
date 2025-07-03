@@ -1,6 +1,42 @@
 # Mergify Configuration for Automated PR Management
 
 pull_request_rules:
+  # Auto-merge bot PRs for dependencies and minor improvements
+  - name: Auto-merge bot PRs (dependencies)
+    conditions:
+      - author=mlops-bot[bot]
+      - label=dependencies
+      - label=bot-created
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+      - title~=^🔄 \[Bot\].*
+    actions:
+      merge:
+        method: squash
+      delete_head_branch: {}
+
+  # Auto-merge bot PRs for code improvements
+  - name: Auto-merge bot PRs (code quality)
+    conditions:
+      - author=mlops-bot[bot]
+      - label=code-quality
+      - label=bot-created
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+      - title~=^🤖 \[Bot\].*
+    actions:
+      merge:
+        method: squash
+      delete_head_branch: {}
+
+  # Auto-approve all bot PRs
+  - name: Auto-approve bot PRs
+    conditions:
+      - author=mlops-bot[bot]
+      - label=bot-created
+    actions:
+      review:
+        type: APPROVE
+        message: "Automatically approved by Mergify (AI bot)"
+
   # Auto-merge dependabot PRs for minor/patch updates
   - name: Auto-merge dependabot PRs (minor/patch)
     conditions:

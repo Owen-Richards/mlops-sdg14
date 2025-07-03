@@ -2,9 +2,9 @@ name: MLOps Pipeline - Marine Ecosystem Platform
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   schedule:
     # Run daily at 2 AM UTC for dependency checks
     - cron: '0 2 * * *'
@@ -260,7 +260,7 @@ jobs:
           make html
       
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -300,12 +300,12 @@ jobs:
           branch: automated-dependency-updates
           delete-branch: true
 
-  # Deployment (only on master)
+  # Deployment (only on main)
   deploy:
     runs-on: ubuntu-latest
     name: 🚀 Deploy to Production
     needs: [security-scan, code-quality, data-pipeline-test, ml-pipeline-test, docker-build]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     environment:
       name: production
@@ -351,7 +351,7 @@ jobs:
     runs-on: ubuntu-latest
     name: 📊 Post-Deploy Monitoring
     needs: [deploy]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
       - name: Wait for system stabilization
