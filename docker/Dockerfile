@@ -1,7 +1,7 @@
 # Multi-stage Docker build for Marine Ecosystem MLOps Platform
 
 # Stage 1: Build environment
-FROM python:3.9-slim as builder
+FROM python:3.13-slim as builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -26,7 +26,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Stage 2: Runtime environment
-FROM python:3.9-slim as runtime
+FROM python:3.13-slim as runtime
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
