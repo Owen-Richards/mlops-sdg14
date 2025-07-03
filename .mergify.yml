@@ -1,0 +1,128 @@
+# Mergify Configuration for Automated PR Management
+
+pull_request_rules:
+  # Auto-merge dependabot PRs for minor/patch updates
+  - name: Auto-merge dependabot PRs (minor/patch)
+    conditions:
+      - author=dependabot[bot]
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+      - title~=^(chore|ci|infra)\(deps\): (bump|update).*
+      - -title~=BREAKING CHANGE
+      - files~=^(requirements\.txt|\.github/workflows/.*\.yml|docker/.*|infrastructure/.*)$
+    actions:
+      merge:
+        method: squash
+      delete_head_branch: {}
+
+  # Auto-merge documentation updates
+  - name: Auto-merge docs updates
+    conditions:
+      - author=Owen-Richards
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+      - title~=^docs:.*
+      - files~=^(docs/.*|README\.md|CONTRIBUTING\.md|\.md)$
+    actions:
+      merge:
+        method: squash
+      delete_head_branch: {}
+
+  # Auto-approve dependabot PRs
+  - name: Auto-approve dependabot PRs
+    conditions:
+      - author=dependabot[bot]
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+    actions:
+      review:
+        type: APPROVE
+        message: "Automatically approved by Mergify (dependabot)"
+
+  # Request review for major changes
+  - name: Request review for major changes
+    conditions:
+      - author!=dependabot[bot]
+      - files~=^(src/.*\.py|tests/.*\.py|requirements\.txt)$
+      - -draft
+    actions:
+      request_reviews:
+        users:
+          - Owen-Richards
+      label:
+        add:
+          - needs-review
+
+  # Auto-rebase outdated PRs
+  - name: Auto-rebase outdated PRs
+    conditions:
+      - -closed
+      - -merged
+      - behind
+      - author!=dependabot[bot]
+    actions:
+      rebase:
+
+  # Add labels based on file changes
+  - name: Label Python changes
+    conditions:
+      - files~=^src/.*\.py$
+    actions:
+      label:
+        add:
+          - python
+          - backend
+
+  - name: Label ML/AI changes
+    conditions:
+      - files~=^(src/models/.*|src/features/.*|notebooks/.*)$
+    actions:
+      label:
+        add:
+          - machine-learning
+          - data-science
+
+  - name: Label infrastructure changes
+    conditions:
+      - files~=^(infrastructure/.*|docker/.*|\.github/workflows/.*)$
+    actions:
+      label:
+        add:
+          - infrastructure
+          - devops
+
+  - name: Label documentation changes
+    conditions:
+      - files~=^(docs/.*|.*\.md)$
+    actions:
+      label:
+        add:
+          - documentation
+
+  # Assign PRs to project board
+  - name: Add to project board
+    conditions:
+      - -closed
+      - -merged
+      - -draft
+    actions:
+      comment:
+        message: |
+          Thanks for your contribution! 🎉
+          
+          This PR has been automatically:
+          - ✅ Assigned appropriate labels
+          - 🏷️ Added to the project board
+          - 🔄 Set up for auto-rebase if needed
+          
+          Please ensure:
+          - [ ] All tests pass
+          - [ ] Code coverage is maintained
+          - [ ] Documentation is updated if needed
+          
+          The PR will be auto-merged once approved if it meets all criteria.
+
+# Queue rules for controlling merge order
+queue_rules:
+  - name: default
+    conditions:
+      - check-success=MLOps Pipeline - Marine Ecosystem Platform
+    batch_size: 3
+    batch_max_wait_time: 5min

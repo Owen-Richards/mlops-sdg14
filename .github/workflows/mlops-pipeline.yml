@@ -1,0 +1,379 @@
+name: MLOps Pipeline - Marine Ecosystem Platform
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run daily at 2 AM UTC for dependency checks
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18'
+
+jobs:
+  # Security and dependency scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    name: 🔒 Security & Dependencies
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Safety check for Python dependencies
+        run: |
+          pip install safety
+          safety check --json --output safety-report.json || true
+      
+      - name: Upload safety report
+        uses: actions/upload-artifact@v3
+        with:
+          name: safety-report
+          path: safety-report.json
+
+  # Code quality and testing
+  code-quality:
+    runs-on: ubuntu-latest
+    name: 🧪 Code Quality & Testing
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov black flake8 mypy bandit
+      
+      - name: Code formatting check (Black)
+        run: black --check --diff src/ tests/
+      
+      - name: Linting (Flake8)
+        run: flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+      
+      - name: Type checking (MyPy)
+        run: mypy src/ --ignore-missing-imports
+      
+      - name: Security linting (Bandit)
+        run: bandit -r src/ -f json -o bandit-report.json || true
+      
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ --cov=src --cov-report=xml --cov-report=html --junitxml=pytest-report.xml
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            pytest-report.xml
+            htmlcov/
+            bandit-report.json
+
+  # Data pipeline testing
+  data-pipeline-test:
+    runs-on: ubuntu-latest
+    name: 🌊 Data Pipeline Testing
+    services:
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock responses
+      
+      - name: Test OBIS data ingestion (mocked)
+        run: pytest tests/integration/test_obis_ingestion.py -v
+      
+      - name: Test NOAA buoy data ingestion (mocked)
+        run: pytest tests/integration/test_noaa_ingestion.py -v
+      
+      - name: Test Argo float data ingestion (mocked)
+        run: pytest tests/integration/test_argo_ingestion.py -v
+      
+      - name: Test data validation pipeline
+        run: pytest tests/integration/test_data_validation.py -v
+
+  # Model training pipeline
+  ml-pipeline-test:
+    runs-on: ubuntu-latest
+    name: 🤖 ML Pipeline Testing
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install ML dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install scikit-learn xgboost lightgbm
+      
+      - name: Test feature engineering
+        run: pytest tests/ml/test_feature_engineering.py -v
+      
+      - name: Test model training (synthetic data)
+        run: pytest tests/ml/test_model_training.py -v
+      
+      - name: Test model validation
+        run: pytest tests/ml/test_model_validation.py -v
+
+  # Docker build and security scan
+  docker-build:
+    runs-on: ubuntu-latest
+    name: 🐳 Docker Build & Scan
+    needs: [code-quality]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: false
+          tags: mlops-sdg14:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Run Trivy vulnerability scanner on Docker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'mlops-sdg14:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+  # Performance benchmarking
+  performance-test:
+    runs-on: ubuntu-latest
+    name: ⚡ Performance Benchmarking
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install locust memory-profiler
+      
+      - name: Run API load tests
+        run: |
+          # Start the API server in background
+          python -m src.api.server &
+          sleep 10
+          
+          # Run load tests
+          locust -f tests/performance/locustfile.py --headless -u 50 -r 10 -t 60s --host=http://localhost:8080
+      
+      - name: Memory profiling
+        run: python tests/performance/memory_profile.py
+
+  # Documentation and API docs
+  documentation:
+    runs-on: ubuntu-latest
+    name: 📚 Documentation
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install documentation dependencies
+        run: |
+          pip install sphinx sphinx-rtd-theme myst-parser
+          pip install -r requirements.txt
+      
+      - name: Build documentation
+        run: |
+          cd docs
+          make html
+      
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html
+
+  # Automated dependency updates
+  dependency-update:
+    runs-on: ubuntu-latest
+    name: 🔄 Dependency Updates
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Update dependencies
+        run: |
+          pip install pip-tools
+          pip-compile --upgrade requirements.in
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          commit-message: 'chore: update dependencies'
+          title: 'chore: automated dependency updates'
+          body: |
+            Automated dependency updates by GitHub Actions.
+            
+            Please review the changes and ensure all tests pass.
+          branch: automated-dependency-updates
+          delete-branch: true
+
+  # Deployment (only on master)
+  deploy:
+    runs-on: ubuntu-latest
+    name: 🚀 Deploy to Production
+    needs: [security-scan, code-quality, data-pipeline-test, ml-pipeline-test, docker-build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    
+    environment:
+      name: production
+      url: https://mlops-sdg14.owen-richards.dev
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      
+      - name: Deploy to EKS
+        run: |
+          # Update kubeconfig
+          aws eks update-kubeconfig --name mlops-sdg14-cluster
+          
+          # Deploy using Helm
+          helm upgrade --install mlops-sdg14 ./helm/mlops-sdg14 \
+            --namespace production \
+            --set image.tag=${{ github.sha }} \
+            --set environment=production
+      
+      - name: Run smoke tests
+        run: |
+          kubectl wait --for=condition=ready pod -l app=mlops-sdg14 -n production --timeout=300s
+          kubectl run smoke-test --rm -i --restart=Never --image=curlimages/curl -- \
+            curl -f http://mlops-sdg14-service/health
+      
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+
+  # Post-deployment monitoring
+  post-deploy-monitoring:
+    runs-on: ubuntu-latest
+    name: 📊 Post-Deploy Monitoring
+    needs: [deploy]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    
+    steps:
+      - name: Wait for system stabilization
+        run: sleep 300  # Wait 5 minutes
+      
+      - name: Check SLIs/SLOs
+        run: |
+          # Query Prometheus for key metrics
+          echo "Checking error rate..."
+          ERROR_RATE=$(curl -s "http://prometheus:9090/api/v1/query?query=rate(http_requests_total{status=~'5..'}[5m])" | jq '.data.result[0].value[1]')
+          
+          if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+            echo "Error rate too high: $ERROR_RATE"
+            exit 1
+          fi
+          
+          echo "Checking response time..."
+          P95_LATENCY=$(curl -s "http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))" | jq '.data.result[0].value[1]')
+          
+          if (( $(echo "$P95_LATENCY > 0.1" | bc -l) )); then
+            echo "P95 latency too high: $P95_LATENCY"
+            exit 1
+          fi
+          
+          echo "All SLIs within acceptable range"
