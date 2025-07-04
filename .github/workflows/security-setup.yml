@@ -561,7 +561,7 @@ jobs:
           fi
       
       - name: Create Pull Request for Security Config
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'feat: enhance repository security and code review practices'
