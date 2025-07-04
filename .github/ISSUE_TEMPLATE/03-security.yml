@@ -1,0 +1,38 @@
+name: 🔒 Security Issue
+description: Report a security vulnerability (for non-critical issues only)
+title: "[Security]: "
+labels: ["security", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **IMPORTANT**: For critical security vulnerabilities, please email us directly instead of creating a public issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Issue Description
+      description: Describe the security concern (non-critical only)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      options:
+        - Low
+        - Medium
+        - High (Consider private disclosure)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Security Checklist
+      options:
+        - label: This is NOT a critical vulnerability
+          required: true
+        - label: I have not shared this information publicly elsewhere
+          required: true

@@ -1,0 +1,26 @@
+# Global code owners
+* @Owen-Richards
+
+# Security-sensitive files require additional review
+.github/workflows/* @Owen-Richards
+docker/* @Owen-Richards
+infrastructure/* @Owen-Richards
+
+# Data and ML pipeline owners
+src/data/* @Owen-Richards
+src/models/* @Owen-Richards
+notebooks/* @Owen-Richards
+
+# Configuration files
+requirements.txt @Owen-Richards
+requirements.in @Owen-Richards
+.env.example @Owen-Richards
+
+# Security and CI/CD
+.github/dependabot.yml @Owen-Richards
+.mergify.yml @Owen-Richards
+Dockerfile @Owen-Richards
+
+# Documentation
+*.md @Owen-Richards
+docs/* @Owen-Richards
