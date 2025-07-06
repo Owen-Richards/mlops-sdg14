@@ -1,0 +1,542 @@
+# Marine Data Sources Configuration
+# Comprehensive list of available data sources and APIs for marine ecosystem research
+
+data_sources:
+  
+  # === BIODIVERSITY & SPECIES DATA ===
+  biodiversity:
+    
+    obis:
+      name: "Ocean Biodiversity Information System"
+      url: "https://api.obis.org/v3"
+      description: "Global repository of marine species occurrence data"
+      coverage: "Global ocean"
+      data_types: ["species_occurrences", "taxonomic_data", "biogeographic_data"]
+      update_frequency: "Real-time"
+      api_rate_limit: "No strict limit"
+      documentation: "https://api.obis.org/v3/docs/"
+      
+    gbif:
+      name: "Global Biodiversity Information Facility"
+      url: "https://api.gbif.org/v1"
+      description: "World's largest network of biodiversity data"
+      coverage: "Global (terrestrial and marine)"
+      data_types: ["species_occurrences", "taxonomic_backbone", "datasets_metadata"]
+      update_frequency: "Daily"
+      api_rate_limit: "100,000 requests/hour"
+      documentation: "https://techdocs.gbif.org/en/openapi/"
+      
+    emodnet_biology:
+      name: "EMODnet Biology"
+      url: "https://www.emodnet-biology.eu"
+      wfs_endpoint: "https://geo.vliz.be/geoserver/Emodnetbio/wfs"
+      description: "European marine biodiversity data"
+      coverage: "European seas and global through EurOBIS"
+      data_types: ["species_distributions", "abundance_data", "biological_parameters"]
+      update_frequency: "Quarterly"
+      access_method: "WFS, REST API"
+      
+    iucn_redlist:
+      name: "IUCN Red List API"
+      url: "https://apiv3.iucnredlist.org"
+      description: "Conservation status and threat assessments"
+      coverage: "Global"
+      data_types: ["conservation_status", "threat_assessments", "population_trends"]
+      api_key_required: true
+      
+    fishbase:
+      name: "FishBase API"
+      url: "https://fishbase.ropensci.org"
+      description: "Fish species database"
+      coverage: "Global fish species"
+      data_types: ["fish_taxonomy", "ecological_data", "distribution_maps"]
+      r_package: "rfishbase"
+      
+    sealifebase:
+      name: "SeaLifeBase"
+      url: "https://www.sealifebase.ca"
+      description: "Marine life database (non-fish)"
+      coverage: "Global marine species"
+      data_types: ["species_data", "ecological_info", "images"]
+      
+  # === ENVIRONMENTAL & SATELLITE DATA ===
+  environmental:
+    
+    erddap_servers:
+      noaa_coastwatch:
+        name: "NOAA CoastWatch ERDDAP"
+        url: "https://coastwatch.pfeg.noaa.gov/erddap"
+        description: "Satellite and in-situ oceanographic data"
+        datasets: 3000+
+        coverage: "Global ocean"
+        data_types: ["sst", "chlorophyll", "currents", "winds", "waves"]
+        
+      marine_institute_ireland:
+        name: "Marine Institute Ireland ERDDAP"
+        url: "https://erddap.marine.ie/erddap"
+        description: "Irish and European marine data"
+        datasets: 80+
+        coverage: "European waters"
+        data_types: ["temperature", "salinity", "currents", "biology"]
+        
+      ifremer:
+        name: "IFREMER ERDDAP"
+        url: "https://www.ifremer.fr/erddap"
+        description: "French marine research data"
+        coverage: "Global, focus on French waters"
+        data_types: ["satellite_data", "model_outputs", "in_situ_measurements"]
+    
+    satellite_products:
+      modis_aqua:
+        name: "MODIS Aqua Ocean Color"
+        provider: "NASA"
+        description: "Ocean color and temperature from MODIS Aqua"
+        resolution: "4km daily, 1km regional"
+        parameters: ["chlorophyll_a", "sst", "par", "pic", "poc"]
+        
+      viirs:
+        name: "VIIRS Ocean Color"
+        provider: "NOAA"
+        description: "Visible Infrared Imaging Radiometer Suite"
+        resolution: "750m daily"
+        parameters: ["chlorophyll_a", "sst", "turbidity"]
+        
+      sentinel3:
+        name: "Sentinel-3 OLCI/SLSTR"
+        provider: "ESA Copernicus"
+        description: "Ocean and Land Color Instrument"
+        resolution: "300m"
+        parameters: ["chlorophyll_a", "suspended_matter", "sst"]
+        
+      jason3:
+        name: "Jason-3 Altimetry"
+        provider: "NOAA/EUMETSAT"
+        description: "Sea surface height measurements"
+        parameters: ["sea_level_anomaly", "significant_wave_height"]
+        
+  # === PHYSICAL OCEANOGRAPHY ===
+  physical_oceanography:
+    
+    argo:
+      name: "Argo Float Program"
+      url: "https://argo.ucsd.edu"
+      api_url: "https://argovis.colorado.edu"
+      description: "Global ocean temperature and salinity profiles"
+      coverage: "Global ocean (>2000m depth)"
+      parameters: ["temperature", "salinity", "pressure", "oxygen"]
+      update_frequency: "Real-time"
+      active_floats: 4000+
+      
+    noaa_buoys:
+      name: "NOAA National Data Buoy Center"
+      url: "https://www.ndbc.noaa.gov"
+      description: "Weather and oceanographic buoy data"
+      coverage: "US coastal and offshore waters"
+      parameters: ["wave_height", "wave_period", "wind", "temperature", "pressure"]
+      stations: 1000+
+      
+    world_ocean_atlas:
+      name: "World Ocean Atlas (WOA)"
+      url: "https://www.ncei.noaa.gov/products/world-ocean-atlas"
+      opendap_url: "https://www.ncei.noaa.gov/thredds/dodsC/ncei/woa"
+      description: "Climatological ocean data"
+      parameters: ["temperature", "salinity", "oxygen", "nutrients"]
+      resolution: "0.25 degree"
+      temporal_coverage: "1955-2017"
+      
+    copernicus_marine:
+      name: "Copernicus Marine Service"
+      url: "https://marine.copernicus.eu"
+      description: "European marine data and forecasts"
+      coverage: "Global ocean"
+      data_types: ["observations", "reanalysis", "forecasts"]
+      parameters: ["temperature", "salinity", "currents", "sea_level", "ice"]
+      
+    ioos:
+      name: "Integrated Ocean Observing System"
+      url: "https://ioos.noaa.gov"
+      sos_url: "https://sos.ioos.us/sos"
+      description: "US coastal and ocean observing networks"
+      coverage: "US coastal waters"
+      data_types: ["real_time_observations", "model_outputs"]
+      
+  # === CLIMATE & MODELING DATA ===
+  climate_models:
+    
+    cmip6:
+      name: "Coupled Model Intercomparison Project Phase 6"
+      url: "https://esgf-node.llnl.gov/projects/cmip6/"
+      description: "Climate model outputs for IPCC reports"
+      models: 100+
+      scenarios: ["ssp126", "ssp245", "ssp370", "ssp585"]
+      variables: ["tas", "tos", "so", "ph", "o2"]
+      
+    ecmwf:
+      name: "European Centre for Medium-Range Weather Forecasts"
+      url: "https://www.ecmwf.int"
+      api_url: "https://cds.climate.copernicus.eu/api/v2"
+      description: "Weather and climate reanalysis data"
+      products: ["ERA5", "SEAS5", "C3S"]
+      
+  # === MARINE CHEMISTRY ===
+  ocean_chemistry:
+    
+    glodap:
+      name: "Global Ocean Data Analysis Project"
+      url: "https://www.glodap.info"
+      description: "Ocean carbon and biogeochemical data"
+      parameters: ["carbon", "ph", "alkalinity", "nutrients"]
+      coverage: "Global ocean"
+      
+    socat:
+      name: "Surface Ocean CO2 Atlas"
+      url: "https://www.socat.info"
+      description: "Surface ocean carbon dioxide measurements"
+      parameters: ["fco2", "ph", "temperature", "salinity"]
+      
+  # === HUMAN ACTIVITIES ===
+  human_activities:
+    
+    emodnet_human_activities:
+      name: "EMODnet Human Activities"
+      url: "https://www.emodnet-humanactivities.eu"
+      description: "Marine human activities data"
+      data_types: ["shipping", "fishing", "offshore_installations", "cables"]
+      
+    global_fishing_watch:
+      name: "Global Fishing Watch"
+      url: "https://globalfishingwatch.org"
+      api_url: "https://gateway.api.globalfishingwatch.org"
+      description: "Global fishing activity tracking"
+      data_types: ["fishing_effort", "vessel_tracks", "port_visits"]
+      
+  # === BATHYMETRY & GEOLOGY ===
+  bathymetry:
+    
+    gebco:
+      name: "General Bathymetric Chart of the Oceans"
+      url: "https://www.gebco.net"
+      description: "Global ocean bathymetry"
+      resolution: "15 arc-second"
+      coverage: "Global ocean"
+      
+    emodnet_bathymetry:
+      name: "EMODnet Bathymetry"
+      url: "https://www.emodnet-bathymetry.eu"
+      description: "European marine bathymetry"
+      coverage: "European seas"
+      resolution: "1/8 * 1/8 arc minute"
+  
+  # === CARBON CYCLE & BIOGEOCHEMISTRY ===
+  carbon_cycle:
+    
+    glodap:
+      name: "Global Ocean Data Analysis Project"
+      url: "https://www.glodap.info"
+      data_url: "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/data/0162565"
+      description: "Global ocean carbon cycle measurements"
+      coverage: "Global ocean, full water column"
+      data_types: ["carbon_system", "nutrients", "tracers", "water_mass_properties"]
+      variables: ["tco2", "talk", "ph", "oxygen", "nitrate", "phosphate", "silicate"]
+      temporal_coverage: "1970s-present"
+      update_frequency: "Every few years (major releases)"
+      
+    socat:
+      name: "Surface Ocean CO2 Atlas"
+      url: "https://www.socat.info"
+      data_url: "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/data/0210711"
+      description: "Surface ocean carbon dioxide measurements"
+      coverage: "Global ocean surface"
+      data_types: ["surface_co2", "air_sea_co2_flux", "oceanographic_parameters"]
+      variables: ["fco2_recommended", "sst", "salinity", "pressure_atm"]
+      temporal_coverage: "1957-present"
+      update_frequency: "Annual releases"
+      
+    copernicus_marine:
+      name: "Copernicus Marine Environment Monitoring Service"
+      url: "https://marine.copernicus.eu"
+      api_url: "https://my.cmems-du.eu/motu-web/Motu"
+      description: "European satellite and in-situ oceanographic data"
+      coverage: "Global and European regional seas"
+      data_types: ["satellite_products", "reanalysis", "forecasts", "in_situ_observations"]
+      variables: ["sea_surface_temperature", "sea_level_anomaly", "ocean_color", "sea_ice"]
+      temporal_coverage: "1993-present (varies by product)"
+      update_frequency: "Near real-time to monthly"
+      api_key_required: true
+      
+  # === HUMAN ACTIVITIES & FISHERIES ===
+  anthropogenic:
+    
+    global_fishing_watch:
+      name: "Global Fishing Watch"
+      url: "https://globalfishingwatch.org"
+      api_url: "https://gateway.api.globalfishingwatch.org/v2"
+      description: "Global fishing activity monitoring via AIS"
+      coverage: "Global ocean"
+      data_types: ["fishing_effort", "vessel_tracking", "marine_protected_areas"]
+      temporal_coverage: "2012-present"
+      update_frequency: "Daily"
+      api_key_required: true
+      
+    marine_traffic:
+      name: "MarineTraffic"
+      url: "https://www.marinetraffic.com"
+      description: "Global ship tracking and maritime analytics"
+      coverage: "Global"
+      data_types: ["vessel_positions", "port_calls", "vessel_emissions"]
+      api_key_required: true
+      
+  # === REAL-TIME OBSERVATORIES ===
+  observatories:
+    
+    ocean_networks_canada:
+      name: "Ocean Networks Canada"
+      url: "https://www.oceannetworks.ca"
+      api_url: "https://data.oceannetworks.ca/api"
+      description: "Cabled ocean observatories in Pacific and Arctic"
+      coverage: "Northeast Pacific, Arctic Ocean"
+      data_types: ["real_time_sensors", "video_streams", "passive_acoustics"]
+      temporal_coverage: "2006-present"
+      update_frequency: "Real-time"
+      api_key_required: true
+      
+    integrated_ocean_observing:
+      name: "Integrated Ocean Observing System (IOOS)"
+      url: "https://ioos.noaa.gov"
+      description: "US integrated ocean observing network"
+      coverage: "US coastal and Great Lakes waters"
+      data_types: ["real_time_observations", "forecasts", "climatologies"]
+      
+  # === EUROPEAN MARINE DATA ===
+  european_infrastructure:
+    
+    seadatanet:
+      name: "SeaDataNet"
+      url: "https://www.seadatanet.org"
+      cdi_service: "https://cdi.seadatanet.org/search"
+      description: "Pan-European marine data infrastructure"
+      coverage: "European seas and global through connected networks"
+      data_types: ["in_situ_observations", "model_outputs", "data_products"]
+      standards: ["SeaDataNet_CDI", "CF_conventions", "BODC_vocabularies"]
+      
+    emodnet_physics:
+      name: "EMODnet Physics"
+      url: "https://www.emodnet-physics.eu"
+      description: "European marine physical and chemical parameters"
+      coverage: "European seas"
+      data_types: ["temperature", "salinity", "currents", "waves", "sea_level"]
+      
+    emodnet_chemistry:
+      name: "EMODnet Chemistry"
+      url: "https://www.emodnet-chemistry.eu"
+      description: "European marine chemical data"
+      coverage: "European seas"
+      data_types: ["nutrients", "contaminants", "carbonate_system", "dissolved_gases"]
+      
+  # === GLOBAL CLIMATE DATA ===
+  climate_reanalysis:
+    
+    era5:
+      name: "ERA5 Reanalysis"
+      url: "https://cds.climate.copernicus.eu"
+      description: "ECMWF fifth generation atmospheric reanalysis"
+      coverage: "Global"
+      data_types: ["atmospheric_variables", "ocean_wave_parameters"]
+      temporal_resolution: "Hourly"
+      spatial_resolution: "0.25°"
+      
+    glorys:
+      name: "GLORYS Ocean Reanalysis"
+      url: "https://marine.copernicus.eu"
+      description: "Global ocean physics reanalysis"
+      coverage: "Global ocean"
+      data_types: ["temperature", "salinity", "currents", "sea_level", "sea_ice"]
+      temporal_resolution: "Daily/Monthly"
+      spatial_resolution: "1/12°"
+      
+  # === SPECIALIZED DATABASES ===
+  specialized:
+    
+    marine_regions:
+      name: "Marine Regions"
+      url: "https://www.marineregions.org"
+      description: "Standard list of marine georeferenced place names"
+      coverage: "Global"
+      data_types: ["geographic_boundaries", "place_names", "maritime_boundaries"]
+      
+    ocean_atlas:
+      name: "World Ocean Atlas"
+      url: "https://www.ncei.noaa.gov/products/world-ocean-atlas"
+      description: "Objectively analyzed climatological fields"
+      coverage: "Global ocean"
+      data_types: ["temperature", "salinity", "nutrients", "oxygen"]
+      temporal_resolution: "Monthly climatologies"
+      
+    algaebase:
+      name: "AlgaeBase"
+      url: "https://www.algaebase.org"
+      description: "Global database of algae"
+      coverage: "Global"
+      data_types: ["taxonomic_data", "nomenclature", "literature"]
+      
+    marine_life_encyclopedia:
+      name: "Encyclopedia of Life Marine"
+      url: "https://eol.org"
+      description: "Comprehensive species information"
+      coverage: "Global"
+      data_types: ["species_pages", "images", "trait_data", "distribution_maps"]
+
+# === API CONFIGURATION ===
+api_config:
+  
+  rate_limits:
+    gbif: 100000  # requests per hour
+    obis: null    # no strict limit
+    erddap: 1000  # requests per hour (varies by server)
+    
+  timeout_seconds:
+    default: 30
+    large_downloads: 300
+    
+  retry_strategy:
+    max_retries: 3
+    backoff_factor: 2
+    
+  data_formats:
+    preferred: ["json", "netcdf", "csv"]
+    supported: ["json", "xml", "netcdf", "csv", "geojson", "kml"]
+
+# === DATA PROCESSING RECOMMENDATIONS ===
+processing_guidelines:
+  
+  quality_control:
+    - "Remove records with invalid coordinates"
+    - "Check depth vs. bathymetry consistency"
+    - "Validate temporal ranges"
+    - "Flag outlier values"
+    - "Check taxonomic name validity"
+    
+  spatial_processing:
+    - "Standardize coordinate systems to WGS84"
+    - "Grid irregular observations"
+    - "Calculate spatial statistics"
+    - "Generate density maps"
+    
+  temporal_processing:
+    - "Standardize time zones to UTC"
+    - "Calculate temporal trends"
+    - "Identify seasonal patterns"
+    - "Detect anomalies"
+    
+  integration_methods:
+    - "Match observations to environmental conditions"
+    - "Interpolate missing values"
+    - "Standardize taxonomic names"
+    - "Calculate derived parameters"
+
+# === IMPORTANT MARINE REGIONS ===
+priority_regions:
+  
+  biodiversity_hotspots:
+    - name: "Coral Triangle"
+      bounds: {west: 95, east: 141, south: -11, north: 20}
+      description: "Highest marine biodiversity on Earth"
+      
+    - name: "Mediterranean Sea"
+      bounds: {west: -6, east: 42, south: 30, north: 47}
+      description: "Endemic species and conservation concern"
+      
+    - name: "Caribbean Sea"
+      bounds: {west: -87, east: -60, south: 9, north: 27}
+      description: "Coral reefs and island endemism"
+      
+  climate_sensitive:
+    - name: "Arctic Ocean"
+      bounds: {west: -180, east: 180, south: 66, north: 90}
+      description: "Rapidly changing sea ice environment"
+      
+    - name: "Antarctic Peninsula"
+      bounds: {west: -70, east: -55, south: -75, north: -60}
+      description: "Fastest warming region in Antarctica"
+      
+  economically_important:
+    - name: "North Sea"
+      bounds: {west: -5, east: 12, south: 51, north: 62}
+      description: "Major fishing grounds and shipping routes"
+      
+    - name: "California Current"
+      bounds: {west: -130, east: -115, south: 25, north: 45}
+      description: "Highly productive upwelling system"
+
+# === REGIONAL CONFIGURATIONS ===
+regions:
+  
+  # High-priority marine ecosystems for SDG 14
+  priority_regions:
+    
+    great_barrier_reef:
+      name: "Great Barrier Reef"
+      bounds: {west: 142.0, east: 154.0, south: -24.5, north: -10.0}
+      importance: "World's largest coral reef system"
+      threats: ["coral_bleaching", "ocean_acidification", "pollution"]
+      key_species: ["coral_species", "marine_fish", "sea_turtles"]
+      
+    arctic_ocean:
+      name: "Arctic Ocean"
+      bounds: {west: -180.0, east: 180.0, south: 66.5, north: 90.0}
+      importance: "Rapidly changing polar ecosystem"
+      threats: ["sea_ice_loss", "warming", "acidification"]
+      key_species: ["polar_bear", "arctic_cod", "phytoplankton"]
+      
+    mediterranean_sea:
+      name: "Mediterranean Sea"
+      bounds: {west: -6.0, east: 36.0, south: 30.0, north: 46.0}
+      importance: "Biodiversity hotspot"
+      threats: ["overfishing", "pollution", "invasive_species"]
+      key_species: ["bluefin_tuna", "monk_seal", "posidonia"]
+      
+    coral_triangle:
+      name: "Coral Triangle"
+      bounds: {west: 120.0, east: 150.0, south: -10.0, north: 20.0}
+      importance: "Global center of marine biodiversity"
+      threats: ["coral_bleaching", "overfishing", "habitat_destruction"]
+      key_species: ["coral_species", "reef_fish", "sea_turtles"]
+      
+    benguela_upwelling:
+      name: "Benguela Upwelling System"
+      bounds: {west: 8.0, east: 20.0, south: -35.0, north: -15.0}
+      importance: "Major upwelling system"
+      threats: ["overfishing", "climate_change", "oxygen_depletion"]
+      key_species: ["sardines", "anchovies", "seabirds"]
+
+# === DATA COLLECTION PROTOCOLS ===
+collection_protocols:
+  
+  data_quality:
+    validation_rules:
+      - "Geographic coordinates within valid ranges"
+      - "Temporal data within reasonable bounds"
+      - "Species names validated against taxonomic databases"
+      - "Physical parameters within expected ranges"
+    
+    metadata_requirements:
+      - "Data source and collection method"
+      - "Spatial and temporal resolution"
+      - "Quality control procedures"
+      - "Uncertainty estimates where available"
+    
+  access_management:
+    rate_limiting:
+      default_delay: 1.0  # seconds between requests
+      burst_limit: 10    # max concurrent requests
+      daily_quota: 10000 # max requests per day
+    
+    authentication:
+      api_keys_file: ".env"
+      required_keys: ["COPERNICUS_USERNAME", "COPERNICUS_PASSWORD", "GFW_API_TOKEN", "ONC_API_TOKEN"]
+    
+  storage_strategy:
+    raw_data_retention: "2_years"
+    processed_data_retention: "5_years"
+    compression: "gzip"
+    format_preference: ["netcdf", "parquet", "csv"]
