@@ -40,7 +40,7 @@ jobs:
           safety check --json --output safety-report.json || true
       
       - name: Upload safety report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: safety-report
           path: safety-report.json
@@ -78,7 +78,7 @@ jobs:
           bandit -r src/ -f txt || true
 
       - name: Upload Bandit report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-report
           path: bandit-report.json
@@ -137,7 +137,7 @@ jobs:
           name: codecov-umbrella
       
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-${{ matrix.python-version }}
@@ -225,7 +225,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/Dockerfile
@@ -299,7 +299,7 @@ jobs:
       
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/_build/html
@@ -326,7 +326,7 @@ jobs:
           pip-compile --upgrade requirements.in
       
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT_TOKEN }}
           commit-message: 'chore: update dependencies'
