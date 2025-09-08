@@ -34,7 +34,7 @@ jobs:
       
       - name: Setup Branch Protection Rules
         if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'branch-protection' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -70,7 +70,7 @@ jobs:
       
       - name: Enable Auto-merge for Repository
         if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -97,7 +97,7 @@ jobs:
       
       - name: Add Repository Topics
         if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -134,7 +134,7 @@ jobs:
       
       - name: Create Repository Labels
         if: ${{ inputs.setup_type == 'all' || inputs.setup_type == 'repository-settings' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
